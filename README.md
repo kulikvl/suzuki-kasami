@@ -7,3 +7,5 @@ Fails:
     "generate-types5": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out=./src/generated -I ./src/protos ./src/protos/*.proto",
     "generate": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated -I ./src/protos ./src/protos/*.proto",
     "proto:generate": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./src/generated --ts_out=grpc_js:./src/generated -I ./src/protos ./src/protos/*.proto",
+    "generate1": "protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated --ts_proto_opt=esModuleInterop=true,forceLong=long,outputServices=grpc-js,env=node -I ./src/protos ./src/protos/*.proto",
+

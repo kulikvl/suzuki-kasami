@@ -2,8 +2,8 @@
 // import * as protoLoader from '@grpc/proto-loader';
 // import { GreeterClient, HelloRequest } from './generated/helloworld';
 
-import { createChannel, createClient } from 'nice-grpc';
-import { GreeterClient, GreeterDefinition } from './generated/helloworld';
+// import { createChannel, createClient } from 'nice-grpc';
+// import { GreeterClient, GreeterDefinition } from './generated/helloworld';
 
 // const packageDefinition = protoLoader.loadSync('./src/protos/helloworld.proto', {});
 // const grpcObject = grpc.loadPackageDefinition(packageDefinition);
@@ -58,13 +58,13 @@ import { GreeterClient, GreeterDefinition } from './generated/helloworld';
 
 // call.on('end', e => console.log('server done!'));
 
-const channel = createChannel('localhost:40000');
+// const channel = createChannel('localhost:40000');
 
-const client: GreeterClient = createClient(GreeterDefinition, channel);
+// const client: GreeterClient = createClient(GreeterDefinition, channel);
 
-async function main() {
-  const response = await client.sayHello({ name: 'aaa' });
-  console.log('Recieved from server ' + JSON.stringify(response));
-}
+// async function main() {
+//   const response = await client.sayHello({ name: 'aaa' });
+//   console.log('Recieved from server ' + JSON.stringify(response));
+// }
 
-main();
+// main();

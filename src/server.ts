@@ -21,28 +21,28 @@
 
 //////////
 
-import { createServer } from 'nice-grpc';
-import {
-  GreeterDefinition,
-  GreeterServiceImplementation,
-  HelloRequest,
-} from './generated/helloworld';
+// import { createServer } from 'nice-grpc';
+// import {
+//   GreeterDefinition,
+//   GreeterServiceImplementation,
+//   HelloRequest,
+// } from './generated/helloworld';
 
-const exampleServiceImpl: GreeterServiceImplementation = {
-  async sayHello(request: HelloRequest) {
-    return Promise.resolve({ message: `Hello ${request.name}` });
-  },
-};
+// const exampleServiceImpl: GreeterServiceImplementation = {
+//   async sayHello(request: HelloRequest) {
+//     return Promise.resolve({ message: `Hello ${request.name}` });
+//   },
+// };
 
-const server = createServer();
+// const server = createServer();
 
-server.add(GreeterDefinition, exampleServiceImpl);
+// server.add(GreeterDefinition, exampleServiceImpl);
 
-server
-  .listen('localhost:40000')
-  .then(a => {
-    console.log(`Server listening on port ${a}`);
-  })
-  .catch(e => {
-    console.error('heyeye errror:', e);
-  });
+// server
+//   .listen('localhost:40000')
+//   .then(a => {
+//     console.log(`Server listening on port ${a}`);
+//   })
+//   .catch(e => {
+//     console.error('heyeye errror:', e);
+//   });

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package mutex;
+
+service Mutex {
+  rpc requestToken (TokenRequest) returns (Empty);
+  rpc sendToken (Token) returns (Empty);
+}
+
+message TokenRequest {
+  int32 nodeId = 1;
+  int32 seq = 2;
+}
+
+message Token {
+  int32 nodeId = 1; // current holder of token
+  repeated int32 Q = 2;
+  repeated int32 LN = 3;
+}
+
+message Empty {}

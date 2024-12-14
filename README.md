@@ -1,11 +1,11 @@
-Fails:
+Suppose node A requests a lock and requsts B. B now has RN[A] = 2. But A thinks B is down so he tries to send one more time and B again receives it with RN[A] = 3. But B's token LN[A] is 1, and 1 != 3 - 1
 
-    "generate-types": "protoc --js_out=import_style=commonjs,binary:./src/generated --grpc_out=./src/generated --plugin=protoc-gen-grpc=./node_modules/.bin/grpc_tools_node_protoc_plugin -I ./src/protos ./src/protos/*.proto",
-    "generate-types2": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out=src/generated --js_out=import_style=commonjs,binary:src/generated --grpc_out=grpc_js:src/generated -I src/protos src/protos/*.proto",
-    "generate-types3": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --js_out=import_style=commonjs,binary:./src/generated --grpc_out=./src/generated ./src/protos/wallet.proto",
-    "generate-types4": "grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./src/generated --grpc_out=./src/generated --plugin=protoc-gen-grpc=./node_modules/.bin/grpc_tools_node_protoc_plugin -I ./src/protos ./src/protos/*.proto",
-    "generate-types5": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out=./src/generated -I ./src/protos ./src/protos/*.proto",
-    "generate": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated -I ./src/protos ./src/protos/*.proto",
-    "proto:generate": "grpc_tools_node_protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./src/generated --ts_out=grpc_js:./src/generated -I ./src/protos ./src/protos/*.proto",
-    "generate1": "protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated --ts_proto_opt=esModuleInterop=true,forceLong=long,outputServices=grpc-js,env=node -I ./src/protos ./src/protos/*.proto",
+Node A is in CS and token Q has B. B crushes and then recovers with RN init to 0. Then it gots his token and gots request from C. So in B node RN[C] = 1 but in token LN[C] it can easily be 13.
 
+Commands useful for debugging/testing this app:
+
+- `lsof -i :3000` list all processes with port 3000 opened
+- `lsof -i :3000 -t | xargs kill -9` kill all such processes
+- `ifconfig lo0` print loopback network interface and its assigned ips
+- `sudo ifconfig lo0 alias 127.0.1.1` add new local ip to loopback subnet
+- `sudo ifconfig lo0 -alias 127.0.1.1` delete that address

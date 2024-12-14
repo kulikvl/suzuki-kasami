@@ -2,20 +2,23 @@ syntax = "proto3";
 
 package mutex;
 
-service Mutex {
-  rpc requestToken (TokenRequest) returns (Empty);
-  rpc sendToken (Token) returns (Empty);
+service MutexService {
+  rpc RequestToken (TokenRequest) returns (EmptyMessage);
+  rpc TransferToken (TokenMessage) returns (EmptyMessage);
 }
 
 message TokenRequest {
-  int32 nodeId = 1;
-  int32 seq = 2;
+  string requester = 1;
+  int32 sequenceNumber = 2;
+  int32 ts = 3;
 }
 
-message Token {
-  int32 nodeId = 1; // current holder of token
-  repeated int32 Q = 2;
-  repeated int32 LN = 3;
+message TokenMessage {
+  string curHolder = 1;
+  map<string, int32> curHolderReqNumbers = 2;
+  repeated string queue = 3;
+  map<string, int32> lastGranted = 4;
+  int32 ts = 5;
 }
 
-message Empty {}
+message EmptyMessage {}

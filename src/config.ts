@@ -1,28 +1,51 @@
-import { parseYaml } from './utils';
+import fs from 'fs';
+import { z } from 'zod';
+import yaml from 'yaml';
+import { Netmask } from 'netmask';
 
-interface NodeConfig {
-  name: string;
-  port: number;
-  ip: string;
-}
+const ConfigSchema = z.object({
+  subnet: z.string().refine(
+    val => {
+      try {
+        new Netmask(val); // Validate subnet format
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Invalid subnet format' },
+  ),
+  localIp: z.string().ip(),
+  lockTimeout: z.number().int().positive(),
+  logFilePath: z.string().nonempty(),
+  appPort: z.number().int().positive().min(1024).max(65535),
+  rpcPort: z.number().int().positive().min(1024).max(65535),
+});
 
-interface Config {
-  nodes: NodeConfig[];
-  self: NodeConfig;
-}
+function loadConfig(filePath: string) {
+  try {
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const config = yaml.parse(fileContent);
+    const parsedConfig = ConfigSchema.parse({ ...config, localIp: process.env.ip });
 
-function parseConfig(): Config {
-  const commonConfig = parseYaml<Config>('config.yml');
-  const selfName = process.env.NAME;
-  const selfNode = commonConfig.nodes.find(node => node.name === selfName);
-  if (!selfNode) {
-    throw new Error(`Self node "${selfName}" not found in config`);
+    const subnet = new Netmask(parsedConfig.subnet);
+
+    if (!subnet.contains(parsedConfig.localIp)) throw new Error('Local IP is not in subnet');
+
+    return {
+      ...parsedConfig,
+      subnet,
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error('Configuration validation failed:', error.errors);
+    } else {
+      console.error('Error reading configuration file:', error);
+    }
+    process.exit(1);
   }
-
-  return {
-    nodes: commonConfig.nodes.filter(node => node.name !== selfName),
-    self: selfNode,
-  };
 }
 
-export const config = parseConfig();
+const config = loadConfig('./config.yml');
+
+export default config;

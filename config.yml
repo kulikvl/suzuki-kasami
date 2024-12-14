@@ -1,7 +1,5 @@
-nodes:
-  - name: node1
-    port: 3001
-    ip: 127.0.0.1
-  - name: node2
-    port: 3002
-    ip: 127.0.0.1
+subnet: 127.0.1.0/29
+lockTimeout: 1000000
+logFilePath: common.log
+appPort: 3000
+rpcPort: 4000

@@ -1,8 +1,6 @@
 ## About
 
-This is an implementation of the Suzuki-Kasami algorithm in Node.js using gRPC. Each node is identified by its IP address. For simplicity, all nodes are assigned IPs from the loopback subnet. The network topology is a full mesh, where every node has a reference (gRPC client) to every other node in the network (cluster). Nodes' IPs are drawn from a predefined subnet specified in the configuration. Therefore, you only need to define the subnet in the config (config.yml). When a new node starts, you only specify its IP address; the advertisement of the new node is automatically handled across all other nodes in the subnet.
-
-The order of mutex requests is preserved using a queue, ensuring correct mutual exclusion.
+This is an implementation of the Suzuki-Kasami algorithm in Node.js using gRPC. Each node is identified by its IP address. For simplicity, all nodes are assigned IPs from the loopback subnet. The network topology is a full mesh, where every node has a reference (gRPC client) to every other node in the network (cluster). Nodes' IPs are drawn from a predefined subnet specified in the configuration (config.yml). When a new node starts, you only specify its IP address; the advertisement of the new node is automatically handled across all other nodes in the subnet.
 
 Each node exposes an HTTP API for control:
 
@@ -34,7 +32,7 @@ To build the project, ensure you have npm and node installed (ideally matching t
 To run a node:
 
 Assign a loopback address using:
-`sudo ifconfig lo0 alias`
+`sudo ifconfig lo0 alias <ip>`
 
 For example, this app and its tests use at least the following addresses: 127.0.1.1, 127.0.1.2, 127.0.1.3.
 
@@ -53,7 +51,7 @@ To run the tests:
 
 Commands useful for debugging/testing this app:
 
-- `lsof -i :3000`: List all processes using port 3000:
+- `lsof -i :3000`: List all processes using port 3000
 - `lsof -i :3000 -t | xargs kill -9`: Kill all processes using port 3000
 - `ifconfig lo0`: Print the loopback network interface and its assigned IPs
 - `sudo ifconfig lo0 alias 127.0.1.1`: Add a new local IP to the loopback subnet

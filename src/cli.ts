@@ -3,11 +3,14 @@ import { execSync } from 'child_process';
 import * as readline from 'readline';
 
 const APP_PORT = 3000;
+
 const output = execSync(`multipass list --format json`, { encoding: 'utf-8' });
-const nodes = JSON.parse(output).list.map((i: any) => ({
-  ip: i.ipv4[0],
-  name: i.name,
-})) as { ip: string; name: string }[];
+const nodes = (
+  JSON.parse(output).list.map((i: any) => ({
+    ip: i.ipv4[0],
+    name: i.name,
+  })) as { ip: string; name: string }[]
+).sort((a, b) => a.name.localeCompare(b.name));
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -17,6 +20,17 @@ const rl = readline.createInterface({
 
 async function processCommand(input: string) {
   const args = input.trim().split(/\s+/);
+
+  if (args[0] === 'boot') {
+    for (const node of nodes) {
+      if (node.name === nodes[0].name) continue;
+      await axios.post(`http://${node.ip}:${APP_PORT}/join`, {
+        bootstrapIp: nodes[0].ip,
+      });
+    }
+    await axios.post(`http://${nodes[0].ip}:${APP_PORT}/token`);
+    return;
+  }
 
   if (args[0] === 'status') {
     const responses = await Promise.all(
@@ -56,12 +70,16 @@ async function processCommand(input: string) {
     }
     case 'lock': {
       // non-blocking
-      axios.post(`http://${node.ip}:${APP_PORT}/lock`).catch(() => {});
+      axios.post(`http://${node.ip}:${APP_PORT}/lock`).catch(e => {
+        console.log(`Lock failed on ${node.name}: ${e.message}`);
+      });
       break;
     }
     case 'unlock': {
       // non-blocking
-      axios.post(`http://${node.ip}:${APP_PORT}/unlock`).catch(() => {});
+      axios.post(`http://${node.ip}:${APP_PORT}/unlock`).catch(e => {
+        console.log(`Unlock failed on ${node.name}: ${e.message}`);
+      });
       break;
     }
     case 'delay': {
@@ -75,6 +93,10 @@ async function processCommand(input: string) {
     }
     case 'join': {
       const joinNode = args[2];
+      if (joinNode && !nodes.find(n => n.name === joinNode)) {
+        console.log(`Bootstrap node IP not found: ${joinNode}`);
+        return;
+      }
       await axios.post(`http://${node.ip}:${APP_PORT}/join`, {
         ...(joinNode && { bootstrapIp: nodes.find(n => n.name === joinNode)!.ip }),
       });
@@ -88,10 +110,14 @@ async function processCommand(input: string) {
       await axios.post(`http://${node.ip}:${APP_PORT}/kill`);
       break;
     }
+    default: {
+      console.log(`Unknown action: ${action}`);
+      break;
+    }
   }
 }
 
-console.log('Welcome to the Command-Line Tool! Type "help" for instructions.');
+console.log('Welcome to the Command-Line Tool!');
 rl.prompt();
 
 rl.on('line', async line => {

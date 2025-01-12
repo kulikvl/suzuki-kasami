@@ -71,8 +71,8 @@ export class Node {
   private lockPromiseResolver: (() => void) | null = null;
   private resolvedDiscoveries: Set<string> = new Set();
 
-  public isTransferringTokenTo: string | null = null;
-  public transferTokenPromiseResolver: (() => void) | null = null;
+  private isTransferringTokenTo: string | null = null;
+  private transferTokenPromiseResolver: (() => void) | null = null;
 
   public constructor(
     private myIp: string,
@@ -94,11 +94,13 @@ export class Node {
     const mutexServiceImpl: MutexServiceImplementation = {
       requestToken: async (req, _) => {
         this.lc.update(req.ts);
+
         await this.handleTokenRequest(req.requester, req.sequenceNumber);
         return Promise.resolve(EmptyMessage);
       },
       transferToken: (req, _) => {
         this.lc.update(req.ts);
+
         this.receiveToken(
           req.curHolder,
           {
@@ -111,12 +113,15 @@ export class Node {
         return Promise.resolve(EmptyMessage);
       },
       discover: async (req, _) => {
+        // Our discovery message came back to us.
         if (req.targetIp === this.myIp) {
           this.updateMember(req.senderIp, 'up');
-        } else {
+        }
+        // Our discovery message recieved another node.
+        else {
           if (this.resolvedDiscoveries.has(req.id)) return Promise.resolve(EmptyMessage);
-          this.resolvedDiscoveries.add(req.id);
 
+          this.resolvedDiscoveries.add(req.id);
           this.updateMember(req.targetIp, req.targetStatus);
 
           await Promise.all(
@@ -160,7 +165,7 @@ export class Node {
   }
 
   public createToken() {
-    if (this.token) return; // token already exists
+    if (this.token) return;
 
     this.logger.log('Creating new token');
 
@@ -169,29 +174,35 @@ export class Node {
       queue: [],
       data: 0,
     };
+
     [this.myIp, ...this.otherIps].forEach(ip => {
       token.lastGranted[ip] = 0;
     });
+
     this.token = token;
   }
 
   private async reportDeadNode(deadIp: string) {
-    if (deadIp === this.myIp) return;
+    abortIf(deadIp === this.myIp, 'Cannot report self as dead');
+
     this.logger.log(`Reporting dead node ${deadIp}`);
     this.updateMember(deadIp, 'down');
+
     const discoveryId = Math.random().toString();
     this.resolvedDiscoveries.add(discoveryId);
+
     await Promise.all(
-      this.otherActiveIps.map(async ip => {
-        try {
-          await this.connections[ip].client.discover({
-            id: discoveryId,
-            senderIp: this.myIp,
-            targetIp: deadIp,
-            targetStatus: 'down',
-          });
-        } catch {}
-      }),
+      this.otherActiveIps.map(
+        async ip =>
+          await this.connections[ip].client
+            .discover({
+              id: discoveryId,
+              senderIp: this.myIp,
+              targetIp: deadIp,
+              targetStatus: 'down',
+            })
+            .catch(() => {}),
+      ),
     );
   }
 
@@ -223,18 +234,24 @@ export class Node {
     }
 
     this.requestNumbers[ip] = 0;
-    if (this.token) this.token.lastGranted[ip] = 0;
+    if (this.token) {
+      this.token.lastGranted[ip] = 0;
+      this.token.queue = this.token.queue.filter(queueIp => queueIp !== ip);
+    }
 
     if (beforeStatus !== status) {
-      this.logger.log(`Updated member ${ip} to ${status}`);
+      this.logger.log(`Updated member ${ip} status to ${status}`);
     }
   }
 
   public async join(bootstrapIp?: string) {
     if (!bootstrapIp) return;
+    abortIf(bootstrapIp === this.myIp, 'Cannot join self');
+
     this.updateMember(bootstrapIp, 'up');
     const discoveryId = Math.random().toString();
     this.resolvedDiscoveries.add(discoveryId);
+
     await this.connections[bootstrapIp].client.discover({
       id: discoveryId,
       senderIp: this.myIp,
@@ -244,27 +261,38 @@ export class Node {
   }
 
   public async leave() {
-    if (this.isLocked) await this.unlock();
-    if (this.token) {
-      for (const ip of this.otherActiveIps) {
-        const result = await this.transferToken(ip);
-        if (result) break;
+    this.logger.log('Leaving...');
+
+    // Wait for token transfer to finish
+    if (this.isTransferringTokenTo !== null) {
+      await new Promise<void>(resolve => {
+        this.transferTokenPromiseResolver = resolve;
+      });
+    } else {
+      if (this.isLocked) await this.unlock();
+      if (this.token) {
+        for (const ip of this.otherActiveIps) {
+          const result = await this.transferToken(ip);
+          if (result) break;
+        }
       }
     }
 
     const discoveryId = Math.random().toString();
     this.resolvedDiscoveries.add(discoveryId);
+
     await Promise.all(
-      this.otherActiveIps.map(async ip => {
-        try {
-          await this.connections[ip].client.discover({
-            id: discoveryId,
-            senderIp: this.myIp,
-            targetIp: this.myIp,
-            targetStatus: 'down',
-          });
-        } catch {}
-      }),
+      this.otherActiveIps.map(
+        async ip =>
+          await this.connections[ip].client
+            .discover({
+              id: discoveryId,
+              senderIp: this.myIp,
+              targetIp: this.myIp,
+              targetStatus: 'down',
+            })
+            .catch(() => {}),
+      ),
     );
   }
 
@@ -274,8 +302,8 @@ export class Node {
 
     this.logger.log(`Request to lock`);
 
+    // Wait for token transfer to finish
     if (this.isTransferringTokenTo !== null) {
-      console.log(`LOCK: WAIT TRANSFER TOKEN PROMISE to ${this.isTransferringTokenTo}`);
       await new Promise<void>(resolve => {
         this.transferTokenPromiseResolver = resolve;
       });
@@ -285,7 +313,6 @@ export class Node {
 
     if (this.token && !this.isLocked) {
       this.isLocked = true;
-      abortIf(this.token === null, 'Token should not be null');
       this.logger.log(`Locked (already owned token)`);
       return;
     }
@@ -309,7 +336,6 @@ export class Node {
       ]);
     } catch {
       abortIf(true, 'Lock request timed out');
-      return;
     }
 
     this.isLocked = true;
@@ -325,33 +351,30 @@ export class Node {
 
     this.isLocked = false;
     this.token!.lastGranted[this.myIp] = this.requestNumbers[this.myIp];
+    this.token!.queue = this.token!.queue.filter(ip => ip !== this.myIp);
 
-    let first = true;
-
-    // add processes with RQ > LN to the queue (because if requested mutex at the time token is going in network, it is not registed by any node)
+    // Add processes with RQ > LN to the queue.
+    // We can't rely solely on `handleTokenRequest` adding to the queue because if a mutex is requested while the token is in transit in the network, it would not be registered by any node.
     for (const ip of this.otherActiveIps) {
       if (
         this.requestNumbers[ip] > this.token!.lastGranted[ip] &&
         !this.token!.queue.includes(ip)
       ) {
+        this.logger.log(`Adding ${ip} to queue - unlock RQ > LN`);
         this.token!.queue.push(ip);
-        if (first) {
-          console.log('FIRST:', ip);
-        }
-        first = false;
       }
     }
 
     let next = this.token!.queue.shift();
     while (next) {
       this.lc.tick();
-      this.logger.log(`Try transferring token to ${next} (queue)`, this.token);
+      this.logger.log(`Try transfer token to ${next} (queue)`);
       const result = await this.transferToken(next);
       if (result) {
         this.logger.log(`Transferred token to ${next} (queue)`);
         break;
       } else {
-        this.logger.log(`Failed to transfer token to ${next} (queue)`, this.token);
+        this.logger.log(`Failed to transfer token to ${next} (queue)`);
         next = this.token!.queue.shift();
       }
     }
@@ -378,7 +401,6 @@ export class Node {
       } else {
         this.logger.log(`Adding ${requester} to queue`);
         this.token.queue.push(requester);
-        this.logger.log(`Queue: ${this.token.queue.join(', ')}`);
       }
     }
   }
@@ -388,7 +410,7 @@ export class Node {
     token: Token,
     curHolderReqNumbers: Record<string, number>,
   ) {
-    this.logger.log(`Received token from ${curHolder} - ${JSON.stringify(token)}`);
+    this.logger.log(`Received token from ${curHolder}`);
 
     abortIf(curHolder === this.myIp, 'Cant receive token from self');
     abortIf(this.token !== null, 'Token should be null');
@@ -410,7 +432,7 @@ export class Node {
       this.lockPromiseResolver = null;
     }
 
-    // sync down nodes
+    // Sync inactive nodes in token
     this.otherInactiveIps.forEach(ip => {
       this.requestNumbers[ip] = 0;
       this.token!.lastGranted[ip] = 0;
@@ -432,7 +454,7 @@ export class Node {
         ts: this.lc.timestamp,
       });
     } catch (e) {
-      this.logger.log(`Error sending token request to ${receiver}`);
+      this.logger.log(`Error sending token request to ${receiver}, so report it`);
       await this.reportDeadNode(receiver);
     }
   }
@@ -465,7 +487,7 @@ export class Node {
       this.logger.log(`Token successfully transferred to ${receiver}`);
       this.token = null;
     } catch (e) {
-      this.logger.log(`Error transferring token to ${receiver}`);
+      this.logger.log(`Error transferring token to ${receiver}, so report it`);
       await this.reportDeadNode(receiver);
       return false;
     } finally {

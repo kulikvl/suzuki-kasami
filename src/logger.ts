@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { LamportClock } from './lamportClock';
 
 export class Logger {
@@ -8,7 +9,8 @@ export class Logger {
 
   public log(...message: any) {
     // const logEntry = `[${new Date().toISOString()}] [LC:${this.lc.timestamp}] [${this.instance}] - ${message}`;
-    console.log(`[${new Date().toISOString()}] [${this.instance}] -`, ...message);
     // fs.appendFileSync('example.log', logEntry);
+
+    console.log(`[${moment().format('HH:mm:ss.SSS')}] -`, ...message);
   }
 }

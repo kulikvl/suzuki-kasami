@@ -1,57 +1,54 @@
 ## About
 
-This is an implementation of the Suzuki-Kasami algorithm in Node.js using gRPC. Each node is identified by its IP address. For simplicity, all nodes are assigned IPs from the loopback subnet. The network topology is a full mesh, where every node has a reference (gRPC client) to every other node in the network (cluster). Nodes' IPs are drawn from a predefined subnet specified in the configuration (config.yml). When a new node starts, you only specify its IP address; the advertisement of the new node is automatically handled across all other nodes in the subnet.
+This is an implementation of the Suzuki-Kasami algorithm in Node.js using gRPC. Each node is identified by its IP address. The network topology is a full mesh, where every node maintains a reference (gRPC client) to every other node in the network (cluster).
 
 Each node exposes an HTTP API for control:
 
-- `/update`: You don’t need to call this manually. It triggers a scan of the subnet for active nodes (e.g., processes listening on port 3000 with IPs in the defined subnet) and updates the list of active peer IPs. This endpoint is automatically invoked by a new node on all existing active nodes when it starts.
 - `/status`: Returns the node's status in JSON format.
+- `/join`: Joins the cluster. You must specify the bootstrap IP—the IP of an existing node in the cluster—so the discovery process works.
+- `/leave`: Gracefully leaves the cluster by sending a discovery message to every node, indicating that this node is leaving.
+- `/kill`: Immediately exits the process.
 - `/lock`: Requests the lock.
-- `/unlock`: Releases the lock if held.
-- `/exit`: Exits the process. This endpoint simply calls process.exit. Alternatively, you can kill the process directly with the same effect. If the node does not hold the token, the cluster continues to operate correctly. Therefore, a dedicated graceful exit endpoint is not strictly necessary.
-
-The implementation has been thoroughly tested. Integration tests for mutex correctness and node failures can be found in the `src/test.ts` file.
-
-All nodes log messages to the `common.log` file. Each log entry is timestamped using a logical clock (Lamport clock).
+- `/unlock`: Releases the lock.
+- `/get`: Retrieves the shared variable.
+- `/set`: Updates the shared variable.
+- `/delay`: Sets a delay for POST API requests.
 
 ## Fault tolerance
 
-The original Suzuki-Kasami algorithm does not account for node failures, assuming all nodes are always active and functional. This implementation handles failures of non-token-bearing nodes gracefully, allowing the cluster to continue functioning correctly. Even if all non-token-bearing nodes fail, the cluster remains operational.
+The original Suzuki-Kasami algorithm assumes all nodes are always active, functional, and in a fixed quantity, meaning it does not account for node failures. This implementation handles failures of non-token-bearing nodes gracefully, ensuring the cluster continues to function correctly. Even if all non-token-bearing nodes fail, the cluster remains operational.
 
-However, if the node holding the token fails, the token must be manually recreated on another node. This is because the token is an in-memory structure, and handling token recreation or recovery is outside the scope of this implementation.
+However, if the node holding the token fails, the token must be manually recreated on another node. This limitation exists because the token is stored in memory, and token recreation or recovery is outside the scope of this implementation.
 
 ## Build
 
-To build the project, ensure you have npm and node installed (ideally matching the version specified in the `.node-version` file).
+To build the project, ensure you have npm and node installed (ideally matching the version specified in the .node-version file).
 
 - `npm install`: Installs all dependencies.
 - `npm run prebuild`: Generates type definitions from gRPC protobuf files.
 
-## Run
-
-To run a node:
-
-Assign a loopback address using:
-`sudo ifconfig lo0 alias <ip>`
-
-For example, this app and its tests use at least the following addresses: 127.0.1.1, 127.0.1.2, 127.0.1.3.
-
-Start the node with:
-`ip=<ip> npm start`
-
-You can use the `./scripts/status.sh` script to print the statuses of all nodes in the specified subnet.
-
 ## Test
 
-Tests are run locally, so first add loopback ips:
+The best way to test this on virtual machines is by using Multipass to create Ubuntu LTS VMs.
 
-- `sudo ifconfig lo0 alias 127.0.1.1`
-- `sudo ifconfig lo0 alias 127.0.1.2`
-- `sudo ifconfig lo0 alias 127.0.1.3`
+Example of launching node1:
 
-To run the tests:
+- `multipass launch --name node1`: Creates a VM.
+- `multipass mount . node1:/home/ubuntu/app`: Mounts the source files.
+- `multipass shell node1`: Opens the VM shell.
+- `sudo apt install -y nodejs npm`: Installs the runtime.
+- `npm start`: Starts the app.
 
-- `npm run test`
+Repeat these steps for each VM node.
+
+You can control the cluster using either the HTTP API or the CLI app. The CLI app is a lightweight wrapper that converts command-line input into API calls to the nodes, which significantly simplifies development and testing.
+
+- `npm run cli`: Starts the CLI app.
+- `boot`: Initializes the cluster and creates the token (calls the /join and /token endpoints).
+- `<node_x> set 13`: Sets the shared variable value to 13 on the node_x instance.
+- `<node_x> get`: Retrieves the shared variable.
+
+You can also run npm run test to simulate a highly parallel environment where every node continuously requests a lock to increment a shared value.
 
 ## Notes
 
@@ -59,13 +56,4 @@ Commands useful for debugging/testing this app:
 
 - `lsof -i :3000`: List all processes using port 3000
 - `lsof -i :3000 -t | xargs kill -9`: Kill all processes using port 3000
-- `ifconfig lo0`: Print the loopback network interface and its assigned IPs
-- `sudo ifconfig lo0 alias 127.0.1.1`: Add a new local IP to the loopback subnet
-- `sudo ifconfig lo0 -alias 127.0.1.1`: Remove a local IP from the loopback subnet
-
-Multipass
-
 - `multipass stop --all && multipass delete --all && multipass purge`: Clear all vms
-
-multipass mount /home/user/my_project <vm-name>:/mnt/my_project
-

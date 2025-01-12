@@ -2,7 +2,7 @@ import { Logger } from './logger';
 import { Node } from './node';
 import express from 'express';
 import config from './config';
-import { sleep } from './utils';
+import { abortIf, sleep } from './utils';
 import { LamportClock } from './lamportClock';
 
 async function start() {
@@ -24,7 +24,6 @@ async function start() {
   });
 
   app.get('/status', (_, res) => {
-    JSON.stringify(node.status, Object.keys(node.status).sort(), 2);
     const status = JSON.stringify(node.status, null, 2);
     res.send(status).status(200);
   });
@@ -50,15 +49,15 @@ async function start() {
   });
 
   app.post('/set', async (req, res) => {
+    // Manual lock
     if (node.isLocked) {
-      if (node.token === null) throw new Error('APP: Token is null');
-      node.token.data = req.body.value;
+      abortIf(node.token === null, '[/set]: Token is null');
+      node.token!.data = req.body.value;
       res.sendStatus(200);
       return;
     }
 
     // Autolock
-    console.log('AUTOLOCK');
     try {
       await node.lock();
       node.token!.data = req.body.value;
@@ -71,14 +70,14 @@ async function start() {
   });
 
   app.get('/get', async (_, res) => {
+    // Manual lock
     if (node.isLocked) {
-      if (node.token === null) throw new Error('APP: Token is null');
-      res.send({ value: node.token.data }).status(200);
+      abortIf(node.token === null, '[/get]: Token is null');
+      res.send({ value: node.token!.data }).status(200);
       return;
     }
 
     // Autolock
-    console.log('AUTOLOCK');
     try {
       await node.lock();
       res.send({ value: node.token!.data }).status(200);

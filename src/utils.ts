@@ -25,3 +25,11 @@ export function abortIf(condition: boolean, message: string): void {
 export function deepCopy<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
+
+export function getRandomFloat(min: number, max: number): number {
+  return Math.random() * (max - min) + min;
+}
+
+export function getRandomInt(min: number, max: number): number {
+  return Math.floor(getRandomFloat(min, max));
+}

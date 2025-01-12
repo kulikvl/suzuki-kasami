@@ -14,15 +14,10 @@ function loadConfig(filePath: string) {
   try {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const config = yaml.parse(fileContent);
-
     const myIp = process.env.ip || address();
-    console.log('My IP detected:', myIp);
-
     const parsedConfig = ConfigSchema.parse({ ...config, myIp });
 
-    return {
-      ...parsedConfig,
-    };
+    return parsedConfig;
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Configuration validation failed:', error.errors);

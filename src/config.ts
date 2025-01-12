@@ -1,23 +1,11 @@
 import fs from 'fs';
 import { z } from 'zod';
 import yaml from 'yaml';
-import { Netmask } from 'netmask';
+import { address } from 'ip';
 
 const ConfigSchema = z.object({
-  subnet: z.string().refine(
-    val => {
-      try {
-        new Netmask(val); // Validate subnet format
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    { message: 'Invalid subnet format' },
-  ),
-  localIp: z.string().ip(),
+  myIp: z.string().ip(),
   lockTimeout: z.number().int().positive(),
-  logFilePath: z.string().nonempty(),
   appPort: z.number().int().positive().min(1024).max(65535),
   rpcPort: z.number().int().positive().min(1024).max(65535),
 });
@@ -26,15 +14,14 @@ function loadConfig(filePath: string) {
   try {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const config = yaml.parse(fileContent);
-    const parsedConfig = ConfigSchema.parse({ ...config, localIp: process.env.ip });
 
-    const subnet = new Netmask(parsedConfig.subnet);
+    const myIp = process.env.ip || address();
+    console.log('My IP detected:', myIp);
 
-    if (!subnet.contains(parsedConfig.localIp)) throw new Error('Local IP is not in subnet');
+    const parsedConfig = ConfigSchema.parse({ ...config, myIp });
 
     return {
       ...parsedConfig,
-      subnet,
     };
   } catch (error) {
     if (error instanceof z.ZodError) {

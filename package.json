@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "start": "ts-node -r tsconfig-paths/register src/app.ts",
-    "test": "mocha --config=.mocharc.js",
+    "test": "ts-node -r tsconfig-paths/register src/test.ts",
+    "cli": "ts-node -r tsconfig-paths/register src/cli.ts",
+    "build": "tsc && tsc-alias",
     "prebuild": "rm -rf ./src/generated/* && npm run generate-types && truncate -s 0 common.log",
     "generate-types": "./node_modules/.bin/grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false --proto_path=./src/protos ./src/protos/*.proto"
   },
@@ -11,28 +13,28 @@
     "@tsconfig/node18": "^18.2.4",
     "@types/chai": "4.3.17",
     "@types/express": "^5.0.0",
+    "@types/ip": "^1.1.3",
     "@types/mocha": "10.0.8",
     "@types/netmask": "^2.0.5",
     "@types/node": "^18.19.68",
+    "@types/object-hash": "^3.0.6",
     "@types/ping": "^0.4.4",
+    "@types/yargs": "^17.0.33",
     "chai": "4.3.7",
     "grpc-tools": "^1.12.4",
     "mocha": "10.7.3",
     "prettier": "^3.3.3",
     "ts-node": "10.9.2",
     "ts-proto": "^2.2.7",
+    "tsc-alias": "^1.8.10",
     "tsconfig-paths": "4.2.0",
     "typescript": "5.6.3"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.12.2",
-    "@grpc/proto-loader": "^0.7.13",
-    "@types/object-hash": "^3.0.6",
     "axios": "^1.7.9",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
-    "google-protobuf": "^3.21.4",
-    "grpc_tools_node_protoc_ts": "^5.3.3",
+    "fast-deep-equal": "^3.1.3",
     "ip": "^2.0.1",
     "long": "^5.2.3",
     "net": "^1.0.2",
@@ -43,6 +45,7 @@
     "protobufjs": "^7.4.0",
     "readline": "^1.3.0",
     "yaml": "^2.6.1",
+    "yargs": "^17.7.2",
     "zod": "^3.24.1"
   }
 }

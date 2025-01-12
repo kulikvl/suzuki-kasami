@@ -5,6 +5,7 @@ package mutex;
 service MutexService {
   rpc RequestToken (TokenRequest) returns (EmptyMessage);
   rpc TransferToken (TokenMessage) returns (EmptyMessage);
+  rpc Discover (DiscoverMessage) returns (EmptyMessage);
 }
 
 message TokenRequest {
@@ -19,6 +20,14 @@ message TokenMessage {
   repeated string queue = 3;
   map<string, int32> lastGranted = 4;
   int32 ts = 5;
+  int32 data = 6;
+}
+
+message DiscoverMessage {
+  string id = 1;
+  string targetIp = 2;
+  string targetStatus = 3;
+  string senderIp = 4;
 }
 
 message EmptyMessage {}

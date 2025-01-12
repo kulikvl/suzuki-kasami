@@ -43,6 +43,12 @@ You can use the `./scripts/status.sh` script to print the statuses of all nodes 
 
 ## Test
 
+Tests are run locally, so first add loopback ips:
+
+- `sudo ifconfig lo0 alias 127.0.1.1`
+- `sudo ifconfig lo0 alias 127.0.1.2`
+- `sudo ifconfig lo0 alias 127.0.1.3`
+
 To run the tests:
 
 - `npm run test`
@@ -56,3 +62,10 @@ Commands useful for debugging/testing this app:
 - `ifconfig lo0`: Print the loopback network interface and its assigned IPs
 - `sudo ifconfig lo0 alias 127.0.1.1`: Add a new local IP to the loopback subnet
 - `sudo ifconfig lo0 -alias 127.0.1.1`: Remove a local IP from the loopback subnet
+
+Multipass
+
+- `multipass stop --all && multipass delete --all && multipass purge`: Clear all vms
+
+multipass mount /home/user/my_project <vm-name>:/mnt/my_project
+
